@@ -3,6 +3,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from .models import Product, BranchProduct
+from scrapy.exceptions import DropItem
+
 
 class WalmartCornershopPipeline(object):
 
@@ -15,16 +17,21 @@ class WalmartCornershopPipeline(object):
         db = self.Session()
         product = Product(**item)
 
-        # Save product to database if sku doesn't exist
-        try:
-            db.add(product)
-            db.commit()
+        item_exists = db.query(Product).filter_by(sku=product.sku).first()
+        if item_exists:
+            print('Product {} already in DataBase.'.format(product.sku))
+        else:
+            try:
+                db.add(product)
+                db.commit()
+                print('Product {} added to DataBase.'.format(product.sku))
+                
+            except:
+                db.rollback()
+                raise
 
-        except:
-            db.rollback()
-            raise
-
-        finally:
-            db.close()
+            finally:
+                db.close()
+        return item
 
         return item
