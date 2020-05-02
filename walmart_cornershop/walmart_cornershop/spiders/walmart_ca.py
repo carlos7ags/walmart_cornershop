@@ -21,10 +21,7 @@ class WalmartCaSpider(CrawlSpider):
     def parse_product(self, response):
         # Get department to verify if it is "Grocery"
         department = response.xpath('//nav/ol/li[2]/a/text()').get()
-        # Verify if it is a product detail page
-        exists = response.xpath('/html/body/script[1]/text()').re_first(r'activeSkuId')
-
-        if exists and department == 'Grocery':
+        if department == 'Grocery':
             product = ProductItem()
 
             # Get data from script and transform it to dictionary
