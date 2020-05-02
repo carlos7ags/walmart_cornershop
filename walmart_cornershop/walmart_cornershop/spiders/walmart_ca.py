@@ -9,13 +9,15 @@ from scrapy.linkextractors import LinkExtractor
 class WalmartCaSpider(CrawlSpider):
     name = 'walmart_ca'
     allowed_domains = ['walmart.ca']
-    start_urls = ['https://www.walmart.ca/en/grocery/N-117']
+    start_urls = ['https://www.walmart.ca/en/grocery/N-3852', 'https://www.walmart.ca/en/grocery/N-3799']
     base_url = 'https://www.walmart.ca/'
 
     item_count = 0
 
-    rules = [Rule(LinkExtractor(allow='en/ip/'),
-                  callback='parse_product', follow=True)]
+    rules = {
+        Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True),
+        Rule(LinkExtractor(allow='en/grocery'), follow=True)
+        }
 
     def parse_product(self, response):
         # Get department to verify if it is "Grocery"
@@ -54,5 +56,13 @@ class WalmartCaSpider(CrawlSpider):
 
             # Count number of products retrived
             self.item_count += 1
-            if self.item_count > 10:
+            if self.item_count > 500:
                 raise scrapy.exceptions.CloseSpider('You reach the limit.')
+
+
+
+    def parse_price(self, response):
+        data_json = json.loads(response.body)
+        branch_product = BranchProductItem()
+        print(data_json)
+        pass
