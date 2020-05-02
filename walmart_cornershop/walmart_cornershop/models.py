@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import UniqueConstraint
@@ -13,13 +13,15 @@ class Product(Base):
 
     id = Column(Integer, primary_key=True)
     store = Column(String, nullable=False)
-    barcodes = Column(String, nullable=True)
     sku = Column(String, nullable=True)
+    barcodes = Column(String, nullable=True)
     brand = Column(String, nullable=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     package = Column(String, nullable=True)
     image_urls = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+    url = Column(String, nullable=True)
 
     branch_products = relationship("BranchProduct", back_populates="product")
 

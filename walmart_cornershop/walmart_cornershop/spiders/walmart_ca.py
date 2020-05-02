@@ -7,7 +7,7 @@ from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 
 class WalmartCaSpider(CrawlSpider):
-    name = 'walmart-ca'
+    name = 'walmart_ca'
     allowed_domains = ['walmart.ca']
     start_urls = ['https://www.walmart.ca/en/grocery/N-117']
     base_url = 'https://www.walmart.ca/'
@@ -16,7 +16,6 @@ class WalmartCaSpider(CrawlSpider):
 
     rules = [Rule(LinkExtractor(allow='en/ip/'),
                   callback='parse_product', follow=True)]
-
 
     def parse_product(self, response):
         # Get department to verify if it is "Grocery"
@@ -38,15 +37,16 @@ class WalmartCaSpider(CrawlSpider):
             product['name'] = data_json['product']['item']['name']['en']
             product['description'] = data_json['entities']['skus'][sku]['longDescription']
             product['package'] = data_json['product']['item']['description']
-            image = []
+            image_urls = []
             images = data_json['entities']['skus'][sku]['images']
             for i in reversed(range(len(images))):
-                image += ['https://i5.walmartimages.ca/' + images[i]['large']['url']]
-            product['image'] = list(set(image))
+                image_urls += ['https://i5.walmartimages.ca/' + images[i]['large']['url']]
+            product['image_urls'] = list(set(image_urls))
             category = 'Grocery'
             categories = data_json['product']['item']['primaryCategories'][0]['hierarchy']
             for i in reversed(range(len(categories))):
                 category += '|' + categories[i]['displayName']['en']
+            category = category.replace('Grocery|Grocery', 'Grocery')
             product['category'] = category
             product['url'] = response.url
 

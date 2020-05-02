@@ -1,11 +1,30 @@
 # -*- coding: utf-8 -*-
 
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from .models import Product, BranchProduct
 
+class WalmartCornershopPipeline(object):
 
-class WalmartCornershopPipeline:
-    def process_item(self, item, spider):
+    def __init__(self):
+        engine = create_engine('sqlite:///db.sqlite', echo=True)
+        self.Session = sessionmaker(bind=engine)
+
+    def process_item(self, item, walmart_ca):
+
+        db = self.Session()
+        product = Product(**item)
+
+        # Save product to database if sku doesn't exist
+        try:
+            db.add(product)
+            db.commit()
+
+        except:
+            db.rollback()
+            raise
+
+        finally:
+            db.close()
+
         return item

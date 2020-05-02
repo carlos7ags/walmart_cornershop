@@ -10,12 +10,12 @@ class ProductItem(scrapy.Item):
     name = scrapy.Field()
     description = scrapy.Field()
     package = scrapy.Field()
-    image = scrapy.Field()
+    image_urls = scrapy.Field()
     category = scrapy.Field()
     url = scrapy.Field()
 
 class BranchProductItem(scrapy.Item):
-    product = scrapy.Field()
+    product_id = scrapy.Field()
     branch = scrapy.Field()
     stock = scrapy.Field()
     price = scrapy.Field()
