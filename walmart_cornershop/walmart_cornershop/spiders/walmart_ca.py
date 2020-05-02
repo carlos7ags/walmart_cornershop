@@ -32,7 +32,7 @@ class WalmartCaSpider(CrawlSpider):
             product['store'] = 'Walmart'
             sku = data_json['product']['activeSkuId']
             product['sku'] = sku
-            product['barcodes'] = data_json['entities']['skus'][sku]['upc']
+            product['barcodes'] = str(data_json['entities']['skus'][sku]['upc'])
             product['brand'] = data_json['entities']['skus'][sku]['brand']['name']
             product['name'] = data_json['product']['item']['name']['en']
             product['description'] = data_json['entities']['skus'][sku]['longDescription']
@@ -41,13 +41,13 @@ class WalmartCaSpider(CrawlSpider):
             images = data_json['entities']['skus'][sku]['images']
             for i in reversed(range(len(images))):
                 image_urls += ['https://i5.walmartimages.ca/' + images[i]['large']['url']]
-            product['image_urls'] = list(set(image_urls))
+            product['image_urls'] = str(list(set(image_urls)))
             category = 'Grocery'
             categories = data_json['product']['item']['primaryCategories'][0]['hierarchy']
             for i in reversed(range(len(categories))):
                 category += '|' + categories[i]['displayName']['en']
             category = category.replace('Grocery|Grocery', 'Grocery')
-            product['category'] = category
+            product['category'] = str(category)
             product['url'] = response.url
 
             yield product
