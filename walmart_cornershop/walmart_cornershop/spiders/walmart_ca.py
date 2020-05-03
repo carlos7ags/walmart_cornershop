@@ -18,8 +18,8 @@ class WalmartCaSpider(CrawlSpider):
     price_api = 'api/product-page/find-in-store?'
 
     rules = {
-        Rule(LinkExtractor(allow='en/grocery')),
-        Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True),
+        Rule(LinkExtractor(allow='en/grocery'), priority=900),
+        Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True, priority=1),
         }
 
 
@@ -64,24 +64,32 @@ class WalmartCaSpider(CrawlSpider):
             l.add_value('url', response.url)
 
             # Request price and quantity
-            stores = [('latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', '3106'),
-                        ('latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', '3124')]
+            branches = [['latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', '3106'],
+                            ['latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', '3124']]
 
-            for coord, store_id in stores:
-                request = scrapy.Request(self.base_url + self.price_api + coord + barcodes[0],
-                                         callback=self.parse_price,
-                                         cb_kwargs={'sku':sku, 'store':store_id},
-                                         priority=10)
-                yield request
+            yield scrapy.Request(self.base_url + self.price_api + branches[0][0] + barcodes[0],
+                                     callback=self.parse_price,
+                                     cb_kwargs={'sku':sku, 'branch':branches[0][1]},
+                                     cookies={'walmart.preferredstore':3106, 'defaultNearestStoreId':3106,
+                                        'walmart.nearestPostalCode':'M6H4A9'},
+                                        meta={'dont_merge_cookies': True},
+                                     priority=500)
 
+            yield scrapy.Request(self.base_url + self.price_api + branches[1][0] + barcodes[0],
+                                     callback=self.parse_price,
+                                     cb_kwargs={'sku':sku, 'branch':branches[1][1]},
+                                     cookies={'walmart.preferredstore':3124, 'defaultNearestStoreId':3124,
+                                        'walmart.nearestPostalCode':'P7B3Z7'},
+                                        meta={'dont_merge_cookies': True},
+                                     priority=500)
             yield l.load_item()
 
 
-    def parse_price(self, response, sku, store):
+    def parse_price(self, response, sku, branch):
         data_json = json.loads(response.body)
         if self.price_api in response.url:
-            #for upc in barcodes:
-            if str(data_json['info'][0]['id']) == store:
+            # Check if in correct store brach:
+            if str(data_json['info'][0]['id']) == branch:
                 data_price = data_json['info'][0]
 
                 # Extract data from dictionary and load it to Item
@@ -89,7 +97,7 @@ class WalmartCaSpider(CrawlSpider):
                 l.default_output_processor = TakeFirst()
 
                 l.add_value('product_id', str(sku))
-                l.add_value('branch', str(store))
+                l.add_value('branch', str(branch))
                 l.add_value('stock', str(data_price['availableToSellQty']))
 
                 if data_price['availabilityStatus'] != 'NOT_SOLD':
@@ -102,4 +110,4 @@ class WalmartCaSpider(CrawlSpider):
 
             else:
                 print('No es la tienda!!!')
-                print(data_json['info'][0]['id'], store)
+                print(data_json['info'][0]['id'], branch)
