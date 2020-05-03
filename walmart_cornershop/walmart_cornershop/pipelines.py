@@ -6,7 +6,7 @@ from .models import Product, BranchProduct
 from scrapy.exceptions import DropItem
 
 
-class WalmartCornershopPipeline(object):
+class WalmartProductPipeline:
 
     def __init__(self):
         engine = create_engine('sqlite:///db.sqlite', echo=True)
@@ -25,13 +25,11 @@ class WalmartCornershopPipeline(object):
                 db.add(product)
                 db.commit()
                 print('Product {} added to DataBase.'.format(product.sku))
-                
+
             except:
                 db.rollback()
                 raise
 
             finally:
                 db.close()
-        return item
-
         return item
