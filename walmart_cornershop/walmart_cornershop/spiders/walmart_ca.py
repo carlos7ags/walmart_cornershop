@@ -18,8 +18,8 @@ class WalmartCaSpider(CrawlSpider):
     price_api = 'api/product-page/find-in-store?'
 
     rules = {
-        Rule(LinkExtractor(allow='en/grocery'), priority=900),
-        Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True, priority=1),
+        Rule(LinkExtractor(allow='en/grocery')),
+        Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True),
         }
 
 
@@ -73,7 +73,7 @@ class WalmartCaSpider(CrawlSpider):
                                      cookies={'walmart.preferredstore':3106, 'defaultNearestStoreId':3106,
                                         'walmart.nearestPostalCode':'M6H4A9'},
                                         meta={'dont_merge_cookies': True},
-                                     priority=500)
+                                     priority=10)
 
             yield scrapy.Request(self.base_url + self.price_api + branches[1][0] + barcodes[0],
                                      callback=self.parse_price,
@@ -81,7 +81,7 @@ class WalmartCaSpider(CrawlSpider):
                                      cookies={'walmart.preferredstore':3124, 'defaultNearestStoreId':3124,
                                         'walmart.nearestPostalCode':'P7B3Z7'},
                                         meta={'dont_merge_cookies': True},
-                                     priority=500)
+                                     priority=10)
             yield l.load_item()
 
 
