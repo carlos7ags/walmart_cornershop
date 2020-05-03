@@ -70,7 +70,7 @@ class WalmartCaSpider(CrawlSpider):
                 raise scrapy.exceptions.CloseSpider('You reach the objective.')
 
             # Request price and quantity
-            stores = [('latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', 3106),
+            stores = [('latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', 3106),
                         ('latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', 3124)]
 
             for coord, store_id in stores:
@@ -85,6 +85,24 @@ class WalmartCaSpider(CrawlSpider):
 
     def parse_price(self, response, sku, store):
         data_json = json.loads(response.body)
-        branch_product = BranchProductItem()
-        print(data_json)
-        pass
+
+        if data_json['info'][0]['id'] == store:
+            data_price = data_json['info'][0]
+
+            # Extract data from dictionary and load it to Item
+            l = ItemLoader(item=BranchProductItem(), response=response)
+            l.default_output_processor = TakeFirst()
+
+            l.add_value('product_id', sku)
+            l.add_value('branch', store)
+            l.add_value('stock', data_price['availableToSellQty'])
+
+            if data_price['availabilityStatus'] != 'NOT_SOLD':
+                l.add_value('price', data_price['sellPrice'])
+            else:
+                l.add_value('price', data_price['availabilityStatus'])
+
+            return l.load_item()
+
+        else:
+            print('No es la tienda!!!')
