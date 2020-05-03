@@ -15,21 +15,43 @@ class WalmartProductPipeline:
     def process_item(self, item, walmart_ca):
 
         db = self.Session()
-        product = Product(**item)
 
-        item_exists = db.query(Product).filter_by(sku=product.sku).first()
-        if item_exists:
-            print('Product {} already in DataBase.'.format(product.sku))
+        if len(item.keys())>4:
+            # Send product item to database
+            product = Product(**item)
+            item_exists = db.query(Product).filter_by(sku=product.sku).first()
+            if item_exists:
+                print('Product {} already in DataBase.'.format(product.sku))
+            else:
+                try:
+                    db.add(product)
+                    db.commit()
+                    print('Product {} added to DataBase.'.format(product.sku))
+
+                except:
+                    db.rollback()
+                    raise
+
+                finally:
+                    db.close()
+
         else:
-            try:
-                db.add(product)
-                db.commit()
-                print('Product {} added to DataBase.'.format(product.sku))
+            # Send product branch item to database
+            product_branch = BranchProduct(**item)
+            item_exists = db.query(BranchProduct).filter_by(product_id=product_branch.product_id, branch=product_branch.branch).first()
+            if item_exists:
+                print('Price {} already in DataBase.'.format(product_branch.product_id))
+            else:
+                try:
+                    db.add(product_branch)
+                    db.commit()
+                    print('Price {} added to DataBase.'.format(product_branch.product_id))
 
-            except:
-                db.rollback()
-                raise
+                except:
+                    db.rollback()
+                    raise
 
-            finally:
-                db.close()
+                finally:
+                    db.close()
+
         return item
