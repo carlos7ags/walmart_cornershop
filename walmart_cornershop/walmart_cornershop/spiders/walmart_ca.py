@@ -2,11 +2,12 @@
 
 import scrapy
 import json
-from ..items import BranchProductItem, ProductItem
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
 from scrapy.loader.processors import TakeFirst
+from ..items import BranchProductItem, ProductItem
+
 
 
 class WalmartCaSpider(CrawlSpider):
@@ -18,7 +19,9 @@ class WalmartCaSpider(CrawlSpider):
     price_api = 'api/product-page/find-in-store?'
 
     rules = {
+        # Rule to extract all urls from Grocery sites
         Rule(LinkExtractor(allow='en/grocery')),
+        # Rule to call parse_product only in product detail page
         Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True),
         }
 
@@ -28,7 +31,7 @@ class WalmartCaSpider(CrawlSpider):
         department = response.xpath('//nav/ol/li[2]/a/text()').get()
         if department == 'Grocery':
 
-            # Get data from script and transform it to dictionary
+            # Get data from script and transform it to json
             pattern = r'(?<=\=)(.*);'
             data = response.xpath('/html/body/script[1]/text()').re_first(pattern)
             data_json = json.loads(data)
@@ -44,7 +47,13 @@ class WalmartCaSpider(CrawlSpider):
             l.add_value('barcodes', str(barcodes))
             l.add_value('brand', data_json['entities']['skus'][sku]['brand']['name'])
             l.add_value('name', data_json['product']['item']['name']['en'])
-            l.add_value('description', data_json['entities']['skus'][sku]['longDescription'])
+
+            # Fix description since come items has paragraph tag
+            description = data_json['entities']['skus'][sku]['longDescription']
+            description = description.replace('<p>', '')
+            description = description.replace('</p>', '')
+            l.add_value('description', description)
+
             l.add_value('package', data_json['product']['item']['description'])
 
             image_urls = []
@@ -63,7 +72,7 @@ class WalmartCaSpider(CrawlSpider):
             l.add_value('category', category)
             l.add_value('url', response.url)
 
-            # Request price and quantity
+            # Request price and quantity via API
             branches = [['latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', '3106'],
                             ['latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', '3124']]
 
@@ -107,7 +116,3 @@ class WalmartCaSpider(CrawlSpider):
                     l.add_value('price', -1)
 
                 yield l.load_item()
-
-            else:
-                print('No es la tienda!!!')
-                print(data_json['info'][0]['id'], branch)
