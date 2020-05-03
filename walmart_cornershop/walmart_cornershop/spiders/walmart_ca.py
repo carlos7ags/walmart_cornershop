@@ -17,11 +17,9 @@ class WalmartCaSpider(CrawlSpider):
     base_url = 'https://www.walmart.ca/'
     price_api = 'api/product-page/find-in-store?'
 
-    item_count = 0
-
     rules = {
+        Rule(LinkExtractor(allow='en/grocery')),
         Rule(LinkExtractor(allow='en/ip/'), callback='parse_product', follow=True),
-        Rule(LinkExtractor(allow='en/grocery'), follow=True)
         }
 
 
@@ -35,6 +33,7 @@ class WalmartCaSpider(CrawlSpider):
             data = response.xpath('/html/body/script[1]/text()').re_first(pattern)
             data_json = json.loads(data)
             sku = data_json['product']['activeSkuId']
+            barcodes = data_json['entities']['skus'][sku]['upc']
 
             # Extract data from dictionary and load it to Item
             l = ItemLoader(item=ProductItem(), response=response)
@@ -42,7 +41,7 @@ class WalmartCaSpider(CrawlSpider):
 
             l.add_value('store', 'Walmart')
             l.add_value('sku', sku)
-            l.add_value('barcodes', str(data_json['entities']['skus'][sku]['upc']))
+            l.add_value('barcodes', str(barcodes))
             l.add_value('brand', data_json['entities']['skus'][sku]['brand']['name'])
             l.add_value('name', data_json['product']['item']['name']['en'])
             l.add_value('description', data_json['entities']['skus'][sku]['longDescription'])
@@ -64,45 +63,43 @@ class WalmartCaSpider(CrawlSpider):
             l.add_value('category', category)
             l.add_value('url', response.url)
 
-            # Count number of products retrived
-            self.item_count += 1
-            if self.item_count > 500:
-                raise scrapy.exceptions.CloseSpider('You reach the objective.')
-
             # Request price and quantity
-            stores = [('latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', 3106),
-                        ('latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', 3124)]
+            stores = [('latitude=43.6562790&longitude=-79.4354490&lang=en&upc=', '3106'),
+                        ('latitude=48.4120872&longitude=-89.2413988&lang=en&upc=', '3124')]
 
             for coord, store_id in stores:
-                request = scrapy.Request(self.base_url + self.price_api + coord + sku,
+                request = scrapy.Request(self.base_url + self.price_api + coord + barcodes[0],
                                          callback=self.parse_price,
-                                         cb_kwargs=dict(sku=sku))
-                request.cb_kwargs['store'] = store_id
+                                         cb_kwargs={'sku':sku, 'store':store_id},
+                                         priority=10)
                 yield request
 
-            return l.load_item()
+            yield l.load_item()
 
 
     def parse_price(self, response, sku, store):
         data_json = json.loads(response.body)
+        if self.price_api in response.url:
+            #for upc in barcodes:
+            if str(data_json['info'][0]['id']) == store:
+                data_price = data_json['info'][0]
 
-        if data_json['info'][0]['id'] == store:
-            data_price = data_json['info'][0]
+                # Extract data from dictionary and load it to Item
+                l = ItemLoader(item=BranchProductItem(), response=response)
+                l.default_output_processor = TakeFirst()
 
-            # Extract data from dictionary and load it to Item
-            l = ItemLoader(item=BranchProductItem(), response=response)
-            l.default_output_processor = TakeFirst()
+                l.add_value('product_id', str(sku))
+                l.add_value('branch', str(store))
+                l.add_value('stock', str(data_price['availableToSellQty']))
 
-            l.add_value('product_id', sku)
-            l.add_value('branch', store)
-            l.add_value('stock', data_price['availableToSellQty'])
+                if data_price['availabilityStatus'] != 'NOT_SOLD':
+                    l.add_value('price', str(data_price['sellPrice']))
+                else:
+                #    l.add_value('price', data_price['availabilityStatus'])
+                    l.add_value('price', -1)
 
-            if data_price['availabilityStatus'] != 'NOT_SOLD':
-                l.add_value('price', data_price['sellPrice'])
+                yield l.load_item()
+
             else:
-                l.add_value('price', data_price['availabilityStatus'])
-
-            return l.load_item()
-
-        else:
-            print('No es la tienda!!!')
+                print('No es la tienda!!!')
+                print(data_json['info'][0]['id'], store)
