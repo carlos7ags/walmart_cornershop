@@ -27,14 +27,11 @@ class WalmartProductPipeline:
                     db.add(product)
                     db.commit()
                     print('Product {} added to DataBase.'.format(product.sku))
-
                 except:
                     db.rollback()
                     raise
-
                 finally:
                     db.close()
-
         else:
             # Send product branch item to database
             product_branch = BranchProduct(**item)
@@ -46,11 +43,9 @@ class WalmartProductPipeline:
                     db.add(product_branch)
                     db.commit()
                     print('Price {} added to DataBase.'.format(product_branch.product_id))
-
                 except:
                     db.rollback()
                     raise
-
                 finally:
                     db.close()
 
