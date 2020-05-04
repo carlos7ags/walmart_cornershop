@@ -107,12 +107,13 @@ class WalmartCaSpider(CrawlSpider):
 
                 l.add_value('product_id', str(sku))
                 l.add_value('branch', str(branch))
-                l.add_value('stock', str(data_price['availableToSellQty']))
 
                 if data_price['availabilityStatus'] != 'NOT_SOLD':
                     l.add_value('price', str(data_price['sellPrice']))
+                    l.add_value('stock', str(data_price['availableToSellQty']))
                 else:
                 #    l.add_value('price', data_price['availabilityStatus'])
-                    l.add_value('price', -1)
+                    l.add_value('price', 0)
+                    l.add_value('stock', 0)
 
                 yield l.load_item()
